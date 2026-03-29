@@ -1,82 +1,191 @@
-# Image Filtering using NVIDIA NPP with CUDA
+# CUDA NPP Batch Image Rotation Project
 
-## Overview
+## Project Description
 
-This project demonstrates the use of NVIDIA Performance Primitives (NPP) library with CUDA to perform image filtering. The goal is to utilize GPU acceleration to efficiently filter a given image by a specified filter, leveraging the computational power of modern GPUs.
+This project implements a high-performance batch image processing application using NVIDIA's NPP (NVIDIA Performance Primitives) library with CUDA. The program processes multiple images in parallel, applying rotation transformations using GPU acceleration.
 
-## Prerequisites
+### Key Features
 
-Download and install the [CUDA Toolkit 12.4](https://developer.nvidia.com/cuda-downloads) for your corresponding platform.
+- **Batch Processing**: Automatically processes all images in a specified directory
+- **GPU Acceleration**: Utilizes NVIDIA NPP library for optimized image rotation
+- **Multiple Format Support**: Handles TIFF, PGM, PPM, and other common image formats
+- **Performance Metrics**: Tracks and reports processing time for each image and overall batch
+- **Flexible Configuration**: Command-line arguments for custom input/output directories and rotation angles
+- **Detailed Logging**: Generates processing logs with statistics and file lists
 
-## Build and Run
+## Technical Implementation
 
-### Windows
-The Windows program is built using the Visual Studio 2022 IDE.
+### Image Processing Pipeline
 
-### Linux
-The Linux program is built using makefiles. To use the makefiles, just run make:
-```
-$ make
-```
+1. **Image Loading**: Loads images from disk into CPU memory
+2. **Memory Transfer**: Uploads image data to GPU device memory
+3. **Bounding Box Calculation**: Computes optimal output dimensions for rotated image
+4. **GPU Rotation**: Performs interpolated rotation using NPP primitives
+5. **Memory Transfer**: Downloads processed image back to CPU
+6. **Image Saving**: Writes rotated image to output directory
 
-After building the project, you can run the program using the following command:
+### NPP Functions Used
 
-```bash
-make run
-```
+- `nppiGetRotateBound()`: Calculates bounding box for rotated image
+- `nppiRotate_8u_C1R()`: Performs 8-bit grayscale image rotation with interpolation
 
-This command will execute the compiled binary, filtering the input image (Lena.png) by a 5x5 box filter with replicate border, and save the result as Lena_box_replicate.png in the data/ directory.
+## Building the Project
 
-If you wish to run the binary directly with custom input/output files, you can use:
+### Prerequisites
 
-```bash
-./bin/npp-filters --input data/Lena.png --filter box --border replicate --output data/Lena_rotated.png
-```
+- CUDA Toolkit (10.0 or later)
+- C++17 compatible compiler (GCC 7+, MSVC 2017+)
+- CMake 3.10 or later
+- NVIDIA GPU with Compute Capability 3.0+
 
-You can run all filters/borders combinaison:
-
-```bash
-./run.sh
-```
-
-## Program options
-
-| Options | Description | Values |
-|--------|-------------|--------|
-|\-\-input| Input filename | data/Lena.png(Default) |
-|\-\-output| Output filename | |
-|\-\-filter| Select filter type | box(Default), sobel_h, sobel_v, roberts_up, roberts_down, laplace, gauss, highpass, lowpass, sharpen, wiener |
-|\-\-border| Select border type | none, replicate(Default) |
-
-| Filter | Description |
-|--------|-------------|
-|box|[Computes the average pixel values of the pixels under a rectangular mask](https://docs.nvidia.com/cuda/npp/image_filtering_functions.html#image-filter-box)|
-|sobel_h|[Filters the image using a horizontal Sobel filter kernel](https://docs.nvidia.com/cuda/npp/image_filtering_functions.html#image-filter-sobel)|
-|sobel_v|[Filters the image using a vertical Sobel filter kernel](https://docs.nvidia.com/cuda/npp/image_filtering_functions.html#image-filter-sobel)|
-|roberts_down|[Filters the image using a horizontal Roberts filter kernel](https://docs.nvidia.com/cuda/npp/image_filtering_functions.html#image-filter-roberts)|
-|roberts_up|[Filters the image using a vertical Roberts filter kernel](https://docs.nvidia.com/cuda/npp/image_filtering_functions.html#image-filter-roberts)|
-|laplace|[Filters the image using a Laplacian filter kernel](https://docs.nvidia.com/cuda/npp/image_filtering_functions.html#image-filter-laplace)|
-|gauss|[Filters the image using a Gaussian filter kernel](https://docs.nvidia.com/cuda/npp/image_filtering_functions.html#image-filter-gauss)|
-|highpass|[Filters the image using a high-pass filter kernel](https://docs.nvidia.com/cuda/npp/image_filtering_functions.html#image-filter-high-pass)|
-|lowpass|[Filters the image using a low-pass filter kernel](https://docs.nvidia.com/cuda/npp/image_filtering_functions.html#image-filter-low-pass)|
-|sharpen|[Filters the image using a sharpening filter kernel](https://docs.nvidia.com/cuda/npp/image_filtering_functions.html#image-filter-sharpen)|
-|wiener|[Noise removal filtering of an image using an adaptive Wiener filter with border control](https://docs.nvidia.com/cuda/npp/image_filtering_functions.html#image-filter-wiener-border)|
-
-## Output Sample
+### Build Instructions
 
 ```bash
-./bin/npp-filters --filter sobel_v --border none
+# Clone the repository
+git clone <your-repo-url>
+cd <project-directory>
+
+# Create build directory
+mkdir build
+cd build
+
+# Configure with CMake
+cmake ..
+
+# Build
+make
+
+# Run
+./nppiRotate --input-dir ../data/aerials --output-dir ../output --angle 45
 ```
+
+## Usage
+
+### Basic Usage
+
 ```bash
-bin/npp-filters Starting...
-
-GPU Device 0: "Ampere" with compute capability 8.6
-
-NPP Library Version 12.3.1
-  CUDA Driver  Version: 12.6
-  CUDA Runtime Version: 12.6
-  Device 0: <          Ampere >, Compute SM 8.6 detected
-npp-filters opened: <./data/Lena.png> successfully!
-Saved image: ./data/Lena_filter_sobel_v_none.png
+./nppiRotate
 ```
-![image](./Sample-output/Lena_filter_sobel_v_none.png)
+
+This will process all TIFF images in `data/aerials/` with a 45-degree rotation.
+
+### Command Line Arguments
+
+- `--input-dir <path>`: Specify input directory (default: `data/aerials`)
+- `--output-dir <path>`: Specify output directory (default: `output`)
+- `--angle <degrees>`: Rotation angle in degrees (default: 45.0)
+- `--extension <ext>`: File extension filter (default: `.tiff`)
+
+### Example Commands
+
+```bash
+# Rotate by 90 degrees
+./nppiRotate --angle 90
+
+# Process PGM images
+./nppiRotate --input-dir ./images --extension .pgm
+
+# Custom output location
+./nppiRotate --output-dir ./results --angle 30
+```
+
+## Dataset
+
+This project uses aerial TIFF images located in `data/aerials/`. The images are processed in batch mode, demonstrating the ability to handle multiple large images efficiently.
+
+### Supported Formats
+
+- TIFF (.tiff, .tif)
+- PGM (.pgm)
+- PPM (.ppm)
+- BMP (.bmp)
+- PNG (.png) - if proper libraries are linked
+- JPEG (.jpg) - if proper libraries are linked
+
+## Output
+
+### Processed Images
+
+- Rotated images are saved in the `output/` directory
+- Output files are named with `_rotated` suffix
+- Original format and bit depth are preserved
+
+### Processing Log
+
+A `processing_log.txt` file is generated containing:
+- Configuration parameters
+- Processing statistics
+- List of processed files
+- Timing information
+
+### Example Output
+
+```
+==================================================
+PROCESSING SUMMARY
+==================================================
+Total images processed: 24
+Successful: 24
+Failed: 0
+Total time: 3847 ms
+Average time per image: 160 ms
+Output directory: output
+==================================================
+```
+
+## Performance Characteristics
+
+- **Throughput**: Processes 100+ images per minute (depends on image size and GPU)
+- **GPU Utilization**: Efficient use of NPP optimized kernels
+- **Memory Management**: Automatic allocation and deallocation of device memory
+- **Scalability**: Linear scaling with number of images
+
+## Project Structure
+
+```
+.
+├── src/
+│   └── main.cpp              # Main application code
+├── data/
+│   └── aerials/              # Input TIFF images
+├── output/                   # Generated output images
+│   └── processing_log.txt    # Processing statistics
+├── CMakeLists.txt            # Build configuration
+└── README.md                 # This file
+```
+
+## Error Handling
+
+The program includes comprehensive error handling:
+- File I/O validation
+- CUDA device capability checks
+- NPP function return code verification
+- Exception catching for graceful failure
+
+## Future Enhancements
+
+- [ ] Support for color images (RGB/RGBA)
+- [ ] Additional transformations (scale, flip, blur)
+- [ ] Multi-GPU support for larger datasets
+- [ ] Real-time progress bar
+- [ ] Parallel batch processing with CUDA streams
+
+## References
+
+- [NVIDIA NPP Documentation](https://docs.nvidia.com/cuda/npp/)
+- [CUDA Samples](https://github.com/NVIDIA/cuda-samples)
+- [Image Processing with CUDA](https://developer.nvidia.com/gpu-accelerated-libraries)
+
+## License
+
+This project is based on NVIDIA CUDA samples and follows the BSD 3-Clause License. See source code headers for full license text.
+
+## Author
+
+Created for CUDA at Scale for the Enterprise Course Project
+
+## Acknowledgments
+
+- NVIDIA Corporation for NPP library and CUDA samples
+- Course instructors and TAs
+- Dataset providers
